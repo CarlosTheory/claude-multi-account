@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline/promises";
-import { BIN_DIR, PROFILES_DIR, launcherName } from "../src/paths.js";
+import { BIN_DIR, DEFAULT_CLAUDE_DIR, PROFILES_DIR, launcherName, profileDir } from "../src/paths.js";
 import { runClaude } from "../src/claude-bin.js";
 import { binDirOnPath, setupPath } from "../src/pathenv.js";
 import {
   addProfile,
+  isLinked,
   listProfiles,
   profileExists,
   removeProfile,
@@ -26,6 +27,7 @@ Usage:
   ccm remove <name>         Remove the launcher (keeps profile data)
   ccm remove <name> --purge Remove launcher AND delete all profile data
   ccm run <name> [args...]  Run claude with a profile without using the launcher
+  ccm where <name>          Print the exact folder where the profile's data lives
   ccm token <name>          Store a long-lived OAuth token for <name> (macOS multi-account)
   ccm token <name> --clear  Remove the stored token
   ccm update                Update the shared claude binary (all profiles get it)
@@ -126,6 +128,14 @@ async function cmdToken(name, clear) {
   ok(`Token stored for "${name}". The ${launcherName(name)} launcher will use it automatically.`);
 }
 
+function cmdWhere(name) {
+  if (!name) fail("Profile name is required. Usage: ccm where <name>");
+  if (!profileExists(name)) fail(`Profile "${name}" does not exist. Create it with: ccm add ${name}`);
+  // Bare path on stdout so it can be used in scripts: cd "$(ccm where ca)"
+  // Linked profiles keep their data in the default installation.
+  ok(isLinked(name) ? DEFAULT_CLAUDE_DIR : profileDir(name));
+}
+
 function cmdUpdate() {
   // One shared binary: updating here updates every profile at once. Profile
   // launchers run with DISABLE_AUTOUPDATER=1, so this (or the original
@@ -174,6 +184,9 @@ async function main() {
         return process.exit(runProfile(rest[0], rest.slice(1)));
       case "token":
         return await cmdToken(rest.filter((a) => a !== "--clear")[0], rest.includes("--clear"));
+      case "where":
+      case "path":
+        return cmdWhere(rest[0]);
       case "update":
         return cmdUpdate();
       case "setup-path":

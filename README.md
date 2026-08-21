@@ -44,6 +44,8 @@ ccm add ca --copy-default     # new profile seeded with a full copy of your
 
 ccm list                # profiles + login state
 ccm run ca [args...]    # run a profile without the launcher/PATH
+ccm where ca            # print the exact folder holding this profile's data
+                        # (alias: ccm path ca; scriptable: cd "$(ccm where ca)")
 ccm remove ca           # remove launcher, keep data
 ccm remove ca --purge   # remove launcher AND delete all profile data
 ccm doctor              # check claude binary, PATH, profiles

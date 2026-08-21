@@ -298,6 +298,44 @@ describe("ccm run — env passed to claude", () => {
   });
 });
 
+describe("ccm where", () => {
+  const sb = makeSandbox();
+  after(() => sb.cleanup());
+  before(() => seedDefaultInstall(sb));
+
+  test("prints the exact profile data dir, bare path on stdout", () => {
+    runCcm(sb, ["add", "work"]);
+    const r = runCcm(sb, ["where", "work"]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout.trim(), path.join(sb.profilesDir, "work"));
+  });
+
+  test("linked profile points at the default installation", () => {
+    runCcm(sb, ["add", "main", "--link-default"]);
+    const r = runCcm(sb, ["where", "main"]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout.trim(), sb.defaultClaudeDir);
+  });
+
+  test("`path` works as an alias", () => {
+    const r = runCcm(sb, ["path", "work"]);
+    assert.equal(r.code, 0);
+    assert.equal(r.stdout.trim(), path.join(sb.profilesDir, "work"));
+  });
+
+  test("nonexistent profile fails", () => {
+    const r = runCcm(sb, ["where", "ghost"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /does not exist/);
+  });
+
+  test("missing name fails with usage hint", () => {
+    const r = runCcm(sb, ["where"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /Usage: ccm where/);
+  });
+});
+
 describe("ccm update", () => {
   const sb = makeSandbox();
   after(() => sb.cleanup());
