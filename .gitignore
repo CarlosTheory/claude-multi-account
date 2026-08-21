@@ -1,0 +1,26 @@
+# Claude user settings (never commit)
+.claude/settings.local.json
+.claude/ca-handoff.md
+.claude/*.local.*
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies & build output
+node_modules/
+dist/
+build/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+
+# Logs & caches
+*.log
+logs/
+.cache/
