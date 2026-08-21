@@ -4,6 +4,12 @@
   "description": "ccm (Claude Code Multi) — manage multiple isolated Claude Code profiles (work/personal accounts) on one machine",
   "license": "MIT",
   "author": "Carlos Aponte (carlostheory.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/carlostheory/claude-multi-account.git"
+  },
+  "homepage": "https://github.com/carlostheory/claude-multi-account#readme",
+  "bugs": "https://github.com/carlostheory/claude-multi-account/issues",
   "type": "module",
   "bin": {
     "ccm": "bin/ccm.js"

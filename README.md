@@ -1,108 +1,134 @@
-# ccm — Claude Code Multi
+# ccm — Run Multiple Claude Code Accounts on One Machine
 
-Run multiple Claude Code accounts on one machine, fully separated. Each profile
-gets its own config folder (login, settings, plugins, MCP servers, history) and
-its own launcher command:
+**Claude Code multi-account / profile manager for Windows, macOS and Linux.**
+Keep your **work** and **personal** Claude accounts fully separated on the same
+computer — each profile gets its own login, settings, plugins, MCP servers and
+conversation history, plus its own launcher command:
 
 ```
-ccm add ca      →  claude-ca      (personal account)
-ccm add work    →  claude-work    (work account)
+ccm add personal   →  claude-personal
+ccm add work       →  claude-work
 ```
 
-Works on Windows, macOS and Linux. Zero dependencies, Node.js >= 18.
+Two terminals, two accounts, side by side. No logging in and out, no shared
+history, no mixed billing. Zero dependencies, Node.js >= 18, MIT licensed.
+
+## Why?
+
+Claude Code stores everything (OAuth login, settings, plugins, MCP servers,
+projects history) in a single per-user config. If you have **two Anthropic
+accounts** — company and personal, or one per client — switching means logging
+out and back in, and everything else (plugins, MCP, history) stays mixed.
+
+`ccm` fixes that with the **official `CLAUDE_CONFIG_DIR` mechanism**: one
+folder per profile under `~/.ccm/profiles/<name>`, and a tiny generated
+`claude-<name>` launcher that points Claude Code at it. Nothing is patched,
+proxied or reverse-engineered — each launcher is a few lines of shell script
+you can read.
+
+## Quick start
+
+```sh
+git clone https://github.com/carlostheory/claude-multi-account.git
+cd claude-multi-account
+npm install -g .
+ccm setup-path        # adds ~/.ccm/bin to your PATH (once) — then open a new terminal
+
+ccm add work          # create the profile + claude-work launcher
+claude-work           # first run: log in with your work account — done
+```
+
+Run `claude-work` for work, plain `claude` (or another profile) for everything
+else. Both can run **at the same time**.
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `ccm add <name>` | Create an isolated profile and its `claude-<name>` launcher |
+| `ccm add <name> --link-default` | Launcher for your **original** installation, unchanged (same account/data) |
+| `ccm add <name> --copy-default` | Seed the profile with a **copy** of your original (settings, plugins, history, login), then independent |
+| `ccm list` | All profiles + login state |
+| `ccm where <name>` | Print the exact folder holding the profile's data (alias: `ccm path`) |
+| `ccm run <name> [args...]` | Run a profile without the launcher/PATH |
+| `ccm token <name>` | Store a long-lived OAuth token (macOS multi-account — see below) |
+| `ccm update` | Update the shared `claude` binary — all profiles get it |
+| `ccm remove <name> [--purge]` | Remove the launcher (and with `--purge`, the data) |
+| `ccm setup-path` | Add `~/.ccm/bin` to your PATH permanently |
+| `ccm doctor` | Check installation, PATH and profiles |
+
+Launcher arguments pass straight through to Claude Code:
+`claude-work --resume`, `claude-personal -p "explain this repo"`, etc.
 
 ## How it works
 
-Claude Code supports the official `CLAUDE_CONFIG_DIR` environment variable to
-relocate everything it stores. `ccm` creates one folder per profile under
-`~/.ccm/profiles/<name>` and generates a `claude-<name>` launcher in
-`~/.ccm/bin` that sets the variable and hands off to `claude`. Nothing is
-patched or proxied — each launcher is a tiny generated script.
-
-On Windows each launcher is a triple shim (`.cmd` + `.ps1` + sh) so it works
-from CMD, PowerShell and Git Bash, same as npm's own shims.
-
-## Install
-
-```sh
-git clone <this-repo> && cd claude-multi-account
-npm install -g .
-ccm setup-path   # adds ~/.ccm/bin to your PATH (once, then open a new terminal)
-```
-
-## Usage
-
-```sh
-ccm add ca              # create profile + claude-ca launcher
-claude-ca               # first run: log in with the account for this profile
-ccm add work            # second profile, second account
-claude-work
-
-ccm add main --link-default   # launcher for your ORIGINAL claude, unchanged
-ccm add ca --copy-default     # new profile seeded with a full copy of your
-                              # original (account, plugins, history), then independent
-
-ccm list                # profiles + login state
-ccm run ca [args...]    # run a profile without the launcher/PATH
-ccm where ca            # print the exact folder holding this profile's data
-                        # (alias: ccm path ca; scriptable: cd "$(ccm where ca)")
-ccm remove ca           # remove launcher, keep data
-ccm remove ca --purge   # remove launcher AND delete all profile data
-ccm doctor              # check claude binary, PATH, profiles
-ccm update              # update the shared claude binary (all profiles get it)
-```
-
-Any arguments after the launcher name pass straight through to `claude`
-(`claude-ca --resume`, `claude-work -p "..."`, etc.).
-
-### Updates
-
-All launchers share ONE `claude` binary, so an update anywhere updates every
-profile at once — profiles pick it up on their next launch. To keep instances
-from fighting over that shared binary, isolated-profile launchers run with
-`DISABLE_AUTOUPDATER=1` (no concurrent-update or lock errors when several
-profiles run at the same time). Updates happen in exactly one place: your
-original installation's own auto-updater (plain `claude` or a `--link-default`
-launcher), or manually via `ccm update`.
-
-### Keeping your original installation
-
-Nothing `ccm` does touches your existing `claude` — new profiles simply point
-elsewhere. Two flags make the relationship explicit:
-
-- `--link-default`: the launcher runs your original installation as-is (no
-  isolation, same account/data). Running `claude` directly keeps working
-  exactly as before. `ccm remove --purge` on a linked profile only deletes the
-  marker folder, never your real `~/.claude`.
-- `--copy-default`: seeds the new profile with a copy of your original
-  installation (settings, plugins, history, login — skipping ephemeral caches),
-  after which the two are fully independent. Note this duplicates the size of
-  `~/.claude` on disk.
-
-## macOS: two accounts at once
-
-On Linux and Windows, credentials live inside each profile folder, so `/login`
-in each profile gives true multi-account. On macOS, OAuth logins are stored in
-the shared system Keychain, so two profiles logging in via `/login` would
-overwrite each other. Use a long-lived token per profile instead:
-
-```sh
-claude setup-token      # log in as the account you want, copy the token
-ccm token ca            # paste it — stored in the profile (0600)
-```
-
-The `claude-ca` launcher then exports it as `CLAUDE_CODE_OAUTH_TOKEN`
-automatically. Repeat with the other account for `work`.
-
-## Where things live
+- Each profile folder **is** a `CLAUDE_CONFIG_DIR`: credentials
+  (`.credentials.json`), `settings.json`, `.claude.json`, plugins, MCP
+  registrations, `projects/` history — all isolated per profile.
+- Launchers are npm-style shims: `.cmd` + `.ps1` + sh on Windows (works from
+  CMD, PowerShell and Git Bash), a single `#!/bin/sh` script on macOS/Linux.
+- **Updates are shared and safe**: every launcher runs the same `claude`
+  binary, so one update (auto-update of your original installation, `brew
+  upgrade`, or `ccm update`) upgrades all profiles at once. Profile launchers
+  set `DISABLE_AUTOUPDATER=1`, so concurrent instances never race to modify
+  the shared binary — a real crash scenario on Windows.
+- Your original installation is never touched. `--link-default` uses no
+  symlinks, so even `ccm remove --purge` cannot reach your real `~/.claude`.
 
 ```
 ~/.ccm/
-  bin/                  generated launchers (add this to PATH)
-  profiles/<name>/      CLAUDE_CONFIG_DIR for that profile:
-                        .claude.json, .credentials.json, settings.json,
-                        plugins, projects/ (history), sessions/, agents/ ...
+  bin/                  generated launchers (on your PATH)
+  profiles/work/        CLAUDE_CONFIG_DIR for "work"
+  profiles/personal/    CLAUDE_CONFIG_DIR for "personal"
 ```
 
-Uninstall: `npm uninstall -g ccm-cli`, delete `~/.ccm`, and remove the PATH
-entry added by `ccm setup-path`.
+## macOS: two accounts at once
+
+On Windows and Linux, `/login` in each profile is all you need — credentials
+live inside the profile folder. On **macOS**, Claude Code stores OAuth logins
+in the shared system Keychain, so two profiles using `/login` would overwrite
+each other. Use a long-lived token per profile instead:
+
+```sh
+claude setup-token     # log in as the account you want, copy the token
+ccm token work         # paste it — stored in the profile with 0600 perms
+```
+
+The `claude-work` launcher then exports it as `CLAUDE_CODE_OAUTH_TOKEN`
+automatically, and both accounts work simultaneously.
+
+## FAQ
+
+**Does this violate anything?** No — `CLAUDE_CONFIG_DIR` is Claude Code's
+documented, supported way to relocate its configuration. `ccm` just manages
+the folders and launchers for you.
+
+**How do I check which account a session uses?** Type `/status` inside the
+session, or run `ccm list` to see the login state of every profile.
+
+**Can profiles have different plugins / MCP servers?** Yes — that's the
+point. Everything user-scoped is per profile. Project-scoped files
+(`.claude/` inside a repo) are shared, as they should be.
+
+**Does my existing setup survive?** Untouched. Profiles live in `~/.ccm`,
+your original `~/.claude` stays where it is. Use `--link-default` if you want
+a launcher for it, or `--copy-default` to fork it into a new profile.
+
+**Uninstall?** `npm uninstall -g ccm-cli`, delete `~/.ccm`, remove the PATH
+entry.
+
+## Development
+
+```sh
+npm test    # 50 tests: sandboxed end-to-end CLI runs + the generated
+            # launchers executed through real cmd.exe / PowerShell / Git Bash
+```
+
+The test suite never touches your real `~/.claude` or `~/.ccm` — see
+`test/helpers.js`.
+
+---
+
+*Keywords: Claude Code multiple accounts, Claude Code profile manager, switch
+Claude accounts, work and personal Claude Code, CLAUDE_CONFIG_DIR, Claude
+Code Windows macOS Linux, Anthropic CLI multi-account.*
