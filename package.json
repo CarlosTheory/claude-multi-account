@@ -1,5 +1,5 @@
 {
-  "name": "ccm-cli",
+  "name": "ccm-claude",
   "version": "0.1.0",
   "description": "ccm (Claude Code Multi) — manage multiple isolated Claude Code profiles (work/personal accounts) on one machine",
   "license": "MIT",

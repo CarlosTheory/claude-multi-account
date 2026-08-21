@@ -29,9 +29,7 @@ you can read.
 ## Quick start
 
 ```sh
-git clone https://github.com/carlostheory/claude-multi-account.git
-cd claude-multi-account
-npm install -g .
+npm install -g ccm-claude
 ccm setup-path        # adds ~/.ccm/bin to your PATH (once) — then open a new terminal
 
 ccm add work          # create the profile + claude-work launcher
@@ -114,8 +112,12 @@ point. Everything user-scoped is per profile. Project-scoped files
 your original `~/.claude` stays where it is. Use `--link-default` if you want
 a launcher for it, or `--copy-default` to fork it into a new profile.
 
-**Uninstall?** `npm uninstall -g ccm-cli`, delete `~/.ccm`, remove the PATH
-entry.
+**Uninstall?** `npm uninstall -g ccm-claude`, delete `~/.ccm`, remove the
+PATH entry.
+
+**Install from source?** `git clone
+https://github.com/carlostheory/claude-multi-account.git && cd
+claude-multi-account && npm install -g .`
 
 ## Development
 
