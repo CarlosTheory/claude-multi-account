@@ -1,5 +1,9 @@
 # ccm — Run Multiple Claude Code Accounts on One Machine
 
+[![npm version](https://img.shields.io/npm/v/ccm-claude)](https://www.npmjs.com/package/ccm-claude)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+![platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+
 **Claude Code multi-account / profile manager for Windows, macOS and Linux.**
 Keep your **work** and **personal** Claude accounts fully separated on the same
 computer — each profile gets its own login, settings, plugins, MCP servers and
