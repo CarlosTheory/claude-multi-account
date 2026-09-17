@@ -2,6 +2,7 @@ import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { keychainService } from "../src/paths.js";
 import { IS_WIN, hasSh, makeSandbox, runCcm, runShim, seedDefaultInstall } from "./helpers.js";
 
 // Each describe block gets its own sandbox HOME so tests can't interfere.
@@ -99,6 +100,16 @@ describe("ccm add — isolated profiles", () => {
   test("list shows the profile as not logged in", () => {
     const r = runCcm(sb, ["list"]);
     assert.match(r.stdout, /work\s+claude-work\s+\[not logged in\]/);
+  });
+
+  test("list detects a per-profile macOS Keychain login", { skip: process.platform !== "darwin" }, () => {
+    const service = keychainService(path.join(sb.profilesDir, "work"));
+    assert.match(service, /^Claude Code-credentials-[0-9a-f]{8}$/);
+    // The default installation's own item must not count as a profile login.
+    const onlyDefault = runCcm(sb, ["list"], { env: { FAKE_KEYCHAIN_SERVICES: "Claude Code-credentials" } });
+    assert.match(onlyDefault.stdout, /work\s+claude-work\s+\[not logged in\]/);
+    const r = runCcm(sb, ["list"], { env: { FAKE_KEYCHAIN_SERVICES: `Claude Code-credentials:${service}` } });
+    assert.match(r.stdout, /work\s+claude-work\s+\[logged in\]/);
   });
 
   test("list shows logged in when credentials exist", () => {

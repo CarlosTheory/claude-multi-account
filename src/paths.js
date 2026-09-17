@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
@@ -28,4 +29,13 @@ export function validateName(name) {
     return `Invalid profile name "${name}". Use letters, numbers, "-" or "_" (max 32 chars, must start with a letter or number).`;
   }
   return null;
+}
+
+// macOS: Claude Code stores each CLAUDE_CONFIG_DIR's OAuth login in its own
+// Keychain item, named after the first 8 hex chars of sha256(dir). The default
+// installation (no CLAUDE_CONFIG_DIR) uses the bare service name.
+export const KEYCHAIN_SERVICE = "Claude Code-credentials";
+
+export function keychainService(dir) {
+  return `${KEYCHAIN_SERVICE}-${createHash("sha256").update(dir).digest("hex").slice(0, 8)}`;
 }

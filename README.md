@@ -53,7 +53,7 @@ else. Both can run **at the same time**.
 | `ccm list` | All profiles + login state |
 | `ccm where <name>` | Print the exact folder holding the profile's data (alias: `ccm path`) |
 | `ccm run <name> [args...]` | Run a profile without the launcher/PATH |
-| `ccm token <name>` | Store a long-lived OAuth token (macOS multi-account — see below) |
+| `ccm token <name>` | Store a long-lived OAuth token (older macOS Claude Code or headless use — see below) |
 | `ccm update` | Update the shared `claude` binary — all profiles get it |
 | `ccm remove <name> [--purge]` | Remove the launcher (and with `--purge`, the data) |
 | `ccm setup-path` | Add `~/.ccm/bin` to your PATH permanently |
@@ -65,8 +65,9 @@ Launcher arguments pass straight through to Claude Code:
 ## How it works
 
 - Each profile folder **is** a `CLAUDE_CONFIG_DIR`: credentials
-  (`.credentials.json`), `settings.json`, `.claude.json`, plugins, MCP
-  registrations, `projects/` history — all isolated per profile.
+  (`.credentials.json`, or a per-profile macOS Keychain item),
+  `settings.json`, `.claude.json`, plugins, MCP registrations, `projects/`
+  history — all isolated per profile.
 - Launchers are npm-style shims: `.cmd` + `.ps1` + sh on Windows (works from
   CMD, PowerShell and Git Bash), a single `#!/bin/sh` script on macOS/Linux.
 - **Updates are shared and safe**: every launcher runs the same `claude`
@@ -89,18 +90,27 @@ Launcher arguments pass straight through to Claude Code:
 
 ## macOS: two accounts at once
 
-On Windows and Linux, `/login` in each profile is all you need — credentials
-live inside the profile folder. On **macOS**, Claude Code stores OAuth logins
-in the shared system Keychain, so two profiles using `/login` would overwrite
-each other. Use a long-lived token per profile instead:
+`/login` inside each profile is all you need on every platform. On Windows
+and Linux the credentials land inside the profile folder; on **macOS**,
+current Claude Code releases give each `CLAUDE_CONFIG_DIR` its own Keychain
+item (`Claude Code-credentials-<hash of the folder>`), so `claude-work` and
+plain `claude` keep separate logins. `ccm list` reads the Keychain (item
+attributes only, never the secret) to report each profile's login state.
+
+`ccm token` remains for two cases: Claude Code releases from before
+per-profile Keychain items, and headless/CI setups where an interactive login
+is not possible:
 
 ```sh
 claude setup-token     # log in as the account you want, copy the token
 ccm token work         # paste it — stored in the profile with 0600 perms
+ccm token work --clear # back to /login
 ```
 
-The `claude-work` launcher then exports it as `CLAUDE_CODE_OAUTH_TOKEN`
-automatically, and both accounts work simultaneously.
+The `claude-work` launcher then exports it as `CLAUDE_CODE_OAUTH_TOKEN`.
+Keep in mind that such a token can only make model requests: claude.ai
+connectors (MCP servers enabled in your claude.ai account) don't load with
+it. Prefer `/login` whenever you need those.
 
 ## FAQ
 
@@ -129,7 +139,7 @@ claude-multi-account && npm install -g .`
 ## Development
 
 ```sh
-npm test    # 50 tests: sandboxed end-to-end CLI runs + the generated
+npm test    # 52 tests: sandboxed end-to-end CLI runs + the generated
             # launchers executed through real cmd.exe / PowerShell / Git Bash
 ```
 

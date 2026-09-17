@@ -1,9 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import {
   DEFAULT_CLAUDE_DIR,
   DEFAULT_CLAUDE_JSON,
   PROFILES_DIR,
+  keychainService,
   launcherName,
   profileDir,
   validateName,
@@ -22,6 +24,21 @@ export function isLinked(name) {
   return fs.existsSync(path.join(profileDir(name), LINK_MARKER));
 }
 
+// macOS keeps a profile's /login in a per-profile Keychain item. This is an
+// attribute lookup only (no -w): the secret is never read, so it never prompts.
+function hasKeychainLogin(dir) {
+  if (process.platform !== "darwin") return false;
+  const res = spawnSync("security", ["find-generic-password", "-s", keychainService(dir)], { stdio: "ignore" });
+  return res.status === 0;
+}
+
+// Login state of an isolated profile dir. Windows/Linux (and macOS when the
+// Keychain is locked) write .credentials.json inside the profile; macOS
+// normally uses the Keychain item instead.
+export function isLoggedIn(dir) {
+  return fs.existsSync(path.join(dir, ".credentials.json")) || hasKeychainLogin(dir);
+}
+
 export function listProfiles() {
   if (!fs.existsSync(PROFILES_DIR)) return [];
   return fs
@@ -29,11 +46,12 @@ export function listProfiles() {
     .filter((entry) => entry.isDirectory())
     .map((entry) => {
       const dir = path.join(PROFILES_DIR, entry.name);
+      const linked = fs.existsSync(path.join(dir, LINK_MARKER));
       return {
         name: entry.name,
         dir,
-        linked: fs.existsSync(path.join(dir, LINK_MARKER)),
-        loggedIn: fs.existsSync(path.join(dir, ".credentials.json")),
+        linked,
+        loggedIn: !linked && isLoggedIn(dir),
         hasToken: fs.existsSync(path.join(dir, TOKEN_FILE)),
         launcher: launcherName(entry.name),
       };
@@ -127,7 +145,8 @@ export function runProfile(name, args) {
   return res.status ?? 0;
 }
 
-// macOS multi-account workaround: store a long-lived token from `claude setup-token`.
+// Store a long-lived token from `claude setup-token` (older macOS Claude Code
+// releases without per-profile Keychain items, or headless use).
 export function setToken(name, token) {
   const invalid = validateName(name);
   if (invalid) throw new Error(invalid);

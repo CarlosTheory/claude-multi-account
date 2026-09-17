@@ -38,6 +38,19 @@ exec node "$(dirname "$0")/fake-claude.js" "$@"
 `,
     { mode: 0o755 }
   );
+  // Fake macOS `security` so `ccm list` never queries the real Keychain from
+  // tests. Only `find-generic-password -s <service>` is emulated: a service
+  // "exists" when it is listed in FAKE_KEYCHAIN_SERVICES (":"-separated).
+  fs.writeFileSync(
+    path.join(fakeBin, "security"),
+    `#!/bin/sh
+case ":$FAKE_KEYCHAIN_SERVICES:" in
+  *":$3:"*) echo 'class: "genp"'; exit 0 ;;
+  *) echo "security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain." >&2; exit 44 ;;
+esac
+`,
+    { mode: 0o755 }
+  );
   if (IS_WIN) {
     fs.writeFileSync(
       path.join(fakeBin, "claude.cmd"),

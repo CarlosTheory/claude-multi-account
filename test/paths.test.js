@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { launcherName, validateName } from "../src/paths.js";
+import { keychainService, launcherName, validateName } from "../src/paths.js";
 
 test("valid profile names pass", () => {
   for (const name of ["ca", "work", "client-x", "acc_2", "A1"]) {
@@ -16,4 +16,10 @@ test("invalid profile names are rejected", () => {
 
 test("launcher naming", () => {
   assert.equal(launcherName("ca"), "claude-ca");
+});
+
+test("macOS keychain service name is derived from the profile dir", () => {
+  // sha256("/Users/alice/.ccm/profiles/work") starts with ae1f0aa5.
+  assert.equal(keychainService("/Users/alice/.ccm/profiles/work"), "Claude Code-credentials-ae1f0aa5");
+  assert.notEqual(keychainService("/a"), keychainService("/b"));
 });

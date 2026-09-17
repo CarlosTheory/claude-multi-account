@@ -41,7 +41,11 @@ Never write tests that touch the real `~/.ccm` or `~/.claude`.
   path and are regenerated (never edited) by `ccm add`.
 - `src/profiles.js` — profile CRUD + `runProfile`. Profiles are discovered by
   listing `~/.ccm/profiles/` (no registry/metadata file — the directory IS the
-  state). Login state is inferred from `.credentials.json` in the profile.
+  state). Login state is inferred from `.credentials.json` in the profile or,
+  on macOS, from the profile's own Keychain item (`keychainService()` in
+  paths.js: `Claude Code-credentials-<sha256(dir)[:8]>`), checked with
+  `security find-generic-password -s` — attributes only, never the secret, so
+  it never prompts. The test sandbox puts a fake `security` on PATH.
   Two special kinds: LINKED profiles (`--link-default`) hold only a
   `.ccm-linked-default` marker and their launchers leave the environment
   untouched (never symlink to `~/.claude` — purge must not be able to reach the
@@ -61,9 +65,13 @@ Never write tests that touch the real `~/.ccm` or `~/.claude`.
 - Everything must work on Windows (CMD/PowerShell/Git Bash), macOS and Linux;
   any launcher-related change has to update all three Windows shim variants in
   `src/shims.js` consistently.
-- macOS cannot isolate `/login` credentials (shared Keychain). The supported
-  path there is a per-profile token file (`.ccm-oauth-token`, mode 0600) that
-  shims export as `CLAUDE_CODE_OAUTH_TOKEN` — see `ccm token` and README.
+- macOS: current Claude Code keys the Keychain login to `CLAUDE_CONFIG_DIR`,
+  so `/login` per profile works there too (verified on 2.1.267; the docs don't
+  name the release that introduced it). The per-profile token file
+  (`.ccm-oauth-token`, mode 0600, exported by shims as
+  `CLAUDE_CODE_OAUTH_TOKEN`) stays for older releases and headless use. A
+  setup-token cannot load claude.ai connectors, so never present it as the
+  default path — see `ccm token` and README.
 - `ccm remove` keeps profile data by default; deletion requires the explicit
   `--purge` flag. Don't weaken that.
 - Update model: one shared `claude` binary for all profiles. Isolated-profile

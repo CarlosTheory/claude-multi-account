@@ -28,7 +28,7 @@ Usage:
   ccm remove <name> --purge Remove launcher AND delete all profile data
   ccm run <name> [args...]  Run claude with a profile without using the launcher
   ccm where <name>          Print the exact folder where the profile's data lives
-  ccm token <name>          Store a long-lived OAuth token for <name> (macOS multi-account)
+  ccm token <name>          Store a long-lived OAuth token for <name> (older macOS Claude Code / headless)
   ccm token <name> --clear  Remove the stored token
   ccm update                Update the shared claude binary (all profiles get it)
   ccm setup-path            Add ~/.ccm/bin to your PATH permanently
@@ -40,8 +40,9 @@ Example:
   ccm add work        →  then run: claude-work (log in with your work account)
 
 Each profile keeps its own login, settings, plugins, MCP servers and history in
-~/.ccm/profiles/<name>. On macOS, logins share the system Keychain — use
-"claude setup-token" + "ccm token <name>" there to keep accounts separate.`;
+~/.ccm/profiles/<name> — on macOS, in its own Keychain item too. Use "ccm token"
+only with older Claude Code releases or headless setups (a setup-token cannot
+load claude.ai connectors).`;
 
 function ok(msg) {
   console.log(msg);
@@ -157,7 +158,7 @@ function cmdDoctor() {
   ok(`updates:         shared binary — profiles never self-update; run "ccm update" (or update the original claude)`);
   ok(`plugins:         auto-update per profile (FORCE_AUTOUPDATE_PLUGINS=1 in isolated launchers)`);
   if (process.platform === "darwin") {
-    ok(`macOS note:      logins share the Keychain; for two accounts use "claude setup-token" + "ccm token <name>".`);
+    ok(`macOS note:      each profile's /login lives in its own Keychain item; "ccm token" is only for older Claude Code or headless use.`);
   }
 }
 
