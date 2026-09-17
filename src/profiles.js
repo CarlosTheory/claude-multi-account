@@ -113,8 +113,10 @@ export function runProfile(name, args) {
     delete env.CLAUDE_CONFIG_DIR;
   } else {
     env.CLAUDE_CONFIG_DIR = profileDir(name);
-    // Same rule as the shims: isolated profiles never self-update the shared binary.
+    // Same rule as the shims: isolated profiles never self-update the shared binary,
+    // but their (per-profile) plugins and marketplaces must keep auto-updating.
     env.DISABLE_AUTOUPDATER = "1";
+    env.FORCE_AUTOUPDATE_PLUGINS = "1";
     const tokenPath = path.join(profileDir(name), TOKEN_FILE);
     if (fs.existsSync(tokenPath)) {
       env.CLAUDE_CODE_OAUTH_TOKEN = fs.readFileSync(tokenPath, "utf8").trim();

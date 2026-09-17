@@ -155,6 +155,7 @@ function cmdDoctor() {
   const profiles = listProfiles();
   ok(`profiles:        ${profiles.length === 0 ? "none" : profiles.map((p) => p.name).join(", ")}`);
   ok(`updates:         shared binary — profiles never self-update; run "ccm update" (or update the original claude)`);
+  ok(`plugins:         auto-update per profile (FORCE_AUTOUPDATE_PLUGINS=1 in isolated launchers)`);
   if (process.platform === "darwin") {
     ok(`macOS note:      logins share the Keychain; for two accounts use "claude setup-token" + "ccm token <name>".`);
   }

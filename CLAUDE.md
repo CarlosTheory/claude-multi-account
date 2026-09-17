@@ -70,3 +70,10 @@ Never write tests that touch the real `~/.ccm` or `~/.claude`.
   shims and `ccm run` set `DISABLE_AUTOUPDATER=1` so profiles never self-update
   (avoids concurrent-update/lock errors); updates flow through the original
   installation or `ccm update` only. Linked launchers must NOT set that var.
+- `DISABLE_AUTOUPDATER` alone also stops Claude Code from auto-refreshing
+  plugin marketplaces and updating plugins, which silently freezes a profile's
+  plugin catalog (a profile then never sees new/renamed plugins and "install"
+  appears to do nothing). Isolated shims and `ccm run` therefore always pair it
+  with `FORCE_AUTOUPDATE_PLUGINS=1` (Claude Code's documented carve-out; plugins
+  are per profile, so there is no shared state to race on). Linked launchers set
+  neither var.

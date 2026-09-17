@@ -73,7 +73,10 @@ Launcher arguments pass straight through to Claude Code:
   binary, so one update (auto-update of your original installation, `brew
   upgrade`, or `ccm update`) upgrades all profiles at once. Profile launchers
   set `DISABLE_AUTOUPDATER=1`, so concurrent instances never race to modify
-  the shared binary — a real crash scenario on Windows.
+  the shared binary — a real crash scenario on Windows. Plugins and
+  marketplaces are per profile, so launchers also set
+  `FORCE_AUTOUPDATE_PLUGINS=1`: each profile keeps auto-updating its own
+  plugin catalog even though the binary does not self-update.
 - Your original installation is never touched. `--link-default` uses no
   symlinks, so even `ccm remove --purge` cannot reach your real `~/.claude`.
 

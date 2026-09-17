@@ -24,6 +24,7 @@ export function makeSandbox() {
 console.log(
   "FAKE_CLAUDE CONFIG=" + (e.CLAUDE_CONFIG_DIR ?? "") +
   " AUTOUPD=" + (e.DISABLE_AUTOUPDATER ?? "") +
+  " PLUGUPD=" + (e.FORCE_AUTOUPDATE_PLUGINS ?? "") +
   " TOKEN=" + (e.CLAUDE_CODE_OAUTH_TOKEN ?? "") +
   " ARGS=" + process.argv.slice(2).join(" ")
 );
@@ -69,6 +70,7 @@ export function sandboxEnv(sb, extra = {}) {
   env[pathKey] = sb.fakeBin + path.delimiter + env[pathKey];
   delete env.CLAUDE_CONFIG_DIR;
   delete env.DISABLE_AUTOUPDATER;
+  delete env.FORCE_AUTOUPDATE_PLUGINS;
   delete env.CLAUDE_CODE_OAUTH_TOKEN;
   return env;
 }

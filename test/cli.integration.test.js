@@ -55,20 +55,23 @@ describe("ccm add — isolated profiles", () => {
     }
   });
 
-  test("shims point at the profile and disable the auto-updater", () => {
+  test("shims point at the profile, disable the auto-updater, keep plugin updates", () => {
     const base = path.join(sb.binDir, "claude-work");
     const sh = fs.readFileSync(base, "utf8");
     assert.match(sh, /CLAUDE_CONFIG_DIR=".*\/\.ccm\/profiles\/work"/);
     assert.match(sh, /export DISABLE_AUTOUPDATER=1/);
+    assert.match(sh, /export FORCE_AUTOUPDATE_PLUGINS=1/);
     assert.match(sh, /\.ccm-oauth-token/);
     assert.match(sh, /exec claude "\$@"/);
     if (IS_WIN) {
       const cmd = fs.readFileSync(`${base}.cmd`, "utf8");
       assert.match(cmd, /set "CLAUDE_CONFIG_DIR=.*\\\.ccm\\profiles\\work"/);
       assert.match(cmd, /set "DISABLE_AUTOUPDATER=1"/);
+      assert.match(cmd, /set "FORCE_AUTOUPDATE_PLUGINS=1"/);
       const ps1 = fs.readFileSync(`${base}.ps1`, "utf8");
       assert.match(ps1, /\$env:CLAUDE_CONFIG_DIR = ".*\\\.ccm\\profiles\\work"/);
       assert.match(ps1, /\$env:DISABLE_AUTOUPDATER = "1"/);
+      assert.match(ps1, /\$env:FORCE_AUTOUPDATE_PLUGINS = "1"/);
     }
   });
 
@@ -118,9 +121,10 @@ describe("ccm add — linked and copied profiles", () => {
     const sh = fs.readFileSync(path.join(sb.binDir, "claude-main"), "utf8");
     assert.doesNotMatch(sh, /CLAUDE_CONFIG_DIR/, "linked shim must not set CLAUDE_CONFIG_DIR");
     assert.doesNotMatch(sh, /DISABLE_AUTOUPDATER/, "linked shim must not disable updates");
+    assert.doesNotMatch(sh, /FORCE_AUTOUPDATE_PLUGINS/, "linked shim must not touch plugin update policy");
     if (IS_WIN) {
       const cmd = fs.readFileSync(path.join(sb.binDir, "claude-main.cmd"), "utf8");
-      assert.doesNotMatch(cmd, /CLAUDE_CONFIG_DIR|DISABLE_AUTOUPDATER/);
+      assert.doesNotMatch(cmd, /CLAUDE_CONFIG_DIR|DISABLE_AUTOUPDATER|FORCE_AUTOUPDATE_PLUGINS/);
     }
   });
 
@@ -262,13 +266,14 @@ describe("ccm run — env passed to claude", () => {
   after(() => sb.cleanup());
   before(() => seedDefaultInstall(sb));
 
-  test("isolated profile: CLAUDE_CONFIG_DIR set, auto-updater disabled, args pass through", () => {
+  test("isolated profile: CLAUDE_CONFIG_DIR set, auto-updater disabled, plugin updates kept, args pass through", () => {
     runCcm(sb, ["add", "work"]);
     const r = runCcm(sb, ["run", "work", "--resume", "abc"]);
     assert.equal(r.code, 0);
     assert.match(r.stdout, /FAKE_CLAUDE/);
     assert.match(r.stdout, new RegExp(`CONFIG=.*[\\\\/]\\.ccm[\\\\/]profiles[\\\\/]work`));
     assert.match(r.stdout, /AUTOUPD=1/);
+    assert.match(r.stdout, /PLUGUPD=1/, "plugins must keep auto-updating inside the profile");
     assert.match(r.stdout, /ARGS=--resume abc/);
   });
 
@@ -284,6 +289,7 @@ describe("ccm run — env passed to claude", () => {
     assert.equal(r.code, 0);
     assert.match(r.stdout, /CONFIG= /, "no CLAUDE_CONFIG_DIR leaks to a linked run");
     assert.match(r.stdout, /AUTOUPD= /, "auto-updater not disabled for the default installation");
+    assert.match(r.stdout, /PLUGUPD= /, "plugin update policy untouched for the default installation");
   });
 
   test("claude's exit code propagates", () => {
@@ -346,6 +352,7 @@ describe("ccm update", () => {
     assert.match(r.stdout, /ARGS=update/);
     assert.match(r.stdout, /CONFIG= /, "update must not run inside a profile config");
     assert.match(r.stdout, /AUTOUPD= /, "manual update path must not be blocked");
+    assert.match(r.stdout, /PLUGUPD= /, "update runs outside any profile policy");
   });
 });
 
@@ -364,6 +371,7 @@ describe("generated launchers executed for real", () => {
     assert.equal(r.code, 0);
     assert.match(r.out, /CONFIG=.*\\\.ccm\\profiles\\work/);
     assert.match(r.out, /AUTOUPD=1/);
+    assert.match(r.out, /PLUGUPD=1/);
     assert.match(r.out, /TOKEN=sk-shim-token/);
     assert.match(r.out, /ARGS=--version/);
   });
@@ -373,6 +381,7 @@ describe("generated launchers executed for real", () => {
     assert.equal(r.code, 0);
     assert.match(r.out, /CONFIG=.*\\\.ccm\\profiles\\work/);
     assert.match(r.out, /AUTOUPD=1/);
+    assert.match(r.out, /PLUGUPD=1/);
     assert.match(r.out, /TOKEN=sk-shim-token/);
   });
 
@@ -381,6 +390,7 @@ describe("generated launchers executed for real", () => {
     assert.equal(r.code, 0);
     assert.match(r.out, /CONFIG=.*[\\/]\.ccm[\\/]profiles[\\/]work/);
     assert.match(r.out, /AUTOUPD=1/);
+    assert.match(r.out, /PLUGUPD=1/);
     assert.match(r.out, /TOKEN=sk-shim-token/);
   });
 
@@ -389,6 +399,7 @@ describe("generated launchers executed for real", () => {
     assert.equal(r.code, 0);
     assert.match(r.out, /CONFIG= /);
     assert.match(r.out, /AUTOUPD= /);
+    assert.match(r.out, /PLUGUPD= /);
   });
 
   test("linked sh shim leaves env untouched", { skip: !hasSh() }, () => {
@@ -396,6 +407,7 @@ describe("generated launchers executed for real", () => {
     assert.equal(r.code, 0);
     assert.match(r.out, /CONFIG= /);
     assert.match(r.out, /AUTOUPD= /);
+    assert.match(r.out, /PLUGUPD= /);
   });
 
   test("shim exit code propagation (cmd)", { skip: !IS_WIN }, () => {
