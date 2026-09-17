@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline/promises";
 import { BIN_DIR, DEFAULT_CLAUDE_DIR, PROFILES_DIR, launcherName, profileDir } from "../src/paths.js";
 import { runClaude } from "../src/claude-bin.js";
@@ -13,7 +15,8 @@ import {
   setToken,
 } from "../src/profiles.js";
 
-const VERSION = "0.1.0";
+const PACKAGE_JSON = fileURLToPath(new URL("../package.json", import.meta.url));
+const { version: VERSION } = JSON.parse(readFileSync(PACKAGE_JSON, "utf8"));
 
 const HELP = `ccm ${VERSION} — Claude Code Multi: isolated Claude Code profiles per account
 
